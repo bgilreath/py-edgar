@@ -12,7 +12,6 @@ class Company():
         self.url = f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}"
         self.timeout = timeout
         self._document_urls = []
-
         self.get_company_info()
 
     @property
@@ -56,8 +55,31 @@ class Company():
       return result
 
     def get_document_type_from_10K(self, document_type, no_of_documents=1):
-      tree = self.get_all_filings(filing_type="10-K")
-      url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      #tree = self.get_all_filings(filing_type="10-K")
+      tree = self.get_all_filings(filing_type="10-Q")
+      #url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      url_groups = self._group_document_type(tree, "10-Q")[:no_of_documents]
+      result = []
+      for url_group in url_groups:
+        for url in url_group:
+          url = BASE_URL + url
+          self._document_urls.append(url)
+          content_page = Company.get_request(url)
+          table = content_page.find_class("tableFile")[0]
+          for row in table.getchildren():
+            if document_type in row.getchildren()[3].text:
+              href = row.getchildren()[2].getchildren()[0].attrib["href"]
+              href = BASE_URL + href
+              href = href.replace("ix?doc=/", "") # required for new iXBRL to HTML
+              doc = Company.get_request(href)
+              result.append(doc)
+      return result
+
+    def get_document_type_from_filetype(self, document_type, no_of_documents=1):
+      #tree = self.get_all_filings(filing_type="10-K")
+      tree = self.get_all_filings(filing_type="10-Q")
+      #url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      url_groups = self._group_document_type(tree, "10-Q")[:no_of_documents]
       result = []
       for url_group in url_groups:
         for url in url_group:
@@ -75,8 +97,33 @@ class Company():
       return result
 
     def get_data_files_from_10K(self, document_type, no_of_documents=1, isxml=False):
-      tree = self.get_all_filings(filing_type="10-K")
-      url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      #tree = self.get_all_filings(filing_type="10-K")
+      tree = self.get_all_filings(filing_type="10-Q")
+      #url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      url_groups = self._group_document_type(tree, "10-Q")[:no_of_documents]
+      result = []
+      for url_group in url_groups:
+        for url in url_group:
+          url = BASE_URL + url
+          self._document_urls.append(url)
+          content_page = Company.get_request(url)
+          tableFile = content_page.find_class("tableFile")
+          if len(tableFile) < 2:
+            continue
+          table = tableFile[1]
+          for row in table.getchildren():
+            if document_type in row.getchildren()[3].text:
+              href = row.getchildren()[2].getchildren()[0].attrib["href"]
+              href = BASE_URL + href
+              doc = Company.get_request(href, isxml=isxml)
+              result.append(doc)
+      return result
+
+    def get_data_files_from_filing(self, filing_type, document_type, no_of_documents=1, isxml=False):
+      #tree = self.get_all_filings(filing_type="10-K")
+      tree = self.get_all_filings(filing_type=filing_type)
+      #url_groups = self._group_document_type(tree, "10-K")[:no_of_documents]
+      url_groups = self._group_document_type(tree, filing_type)[:no_of_documents]
       result = []
       for url_group in url_groups:
         for url in url_group:

@@ -13,14 +13,15 @@ class XBRL(etree.ElementBase):
 
   def __init__(self, *children, attrib=None, nsmap=None, **_extra):
     super().__init__(*children, attrib=None, nsmap=None, **_extra)
-    self.definitions = dict(
-        (child.attrib["id"], self.__parse_context__(child)) for child in self.child.getchildren() if not isinstance(child, etree._Comment) and "context" in child.tag)
+    #self.context_ref = context_ref
+    self.definitions = dict((child.attrib["id"], self.__parse_context__(child)) for child in self.child.getchildren() if not isinstance(child, etree._Comment) and "context" in child.tag)
     self.relevant_children = [child for child in self.child.getchildren() if not isinstance(child, etree._Comment) and "context" not in child.tag]
     children = [child for child in self.child.getchildren() if XBRL.is_parsable(child)]
     for elem in children:
       XBRL.clean_tag(elem)
 
     self.relevant_children_parsed = children
+    #self.relevant_children_by_period = [XBRLElement(child, context_ref=self.definitions[child.attrib["contextRef"]] if child.attrib.get("contextRef") else None) for child in children]
     self.relevant_children_elements = [XBRLElement(child, context_ref=self.definitions[child.attrib["contextRef"]] if child.attrib.get("contextRef") else None) for child in children]
 
   def __parse_context__(self, context):
@@ -43,7 +44,7 @@ class XBRL(etree.ElementBase):
   @classmethod
   def clean_tag(cls, elem):
     """
-    Parse tag so 
+    Parse tag so
       {http://fasb.org/us-gaap/2018-01-31}Assets
     becomes
       Assets
